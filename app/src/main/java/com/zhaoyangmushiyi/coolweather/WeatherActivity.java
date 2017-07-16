@@ -41,6 +41,8 @@ public class WeatherActivity extends AppCompatActivity {
 
     public SwipeRefreshLayout swipeRefresh;
 
+    private String mWeatherId;
+
     private ScrollView weatherLayout;
 
     private Button navButton;
@@ -89,20 +91,29 @@ public class WeatherActivity extends AppCompatActivity {
         comfortText = (TextView) findViewById(R.id.comfort_text);
         carWashText = (TextView) findViewById(R.id.car_wash_text);
         sportText = (TextView) findViewById(R.id.sport_text);
-//        swipeRefresh = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh);
-//        swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
+        swipeRefresh = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh);
+        swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
 //        drawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
 //        navButton = (Button) findViewById(R.id.nav_button);
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
         String weatherString = preferences.getString("weather", null);
         if (weatherString != null){
+            //有缓存时直接解析天气数据
             Weather weather = Utility.handleWeatherResponse(weatherString);
+            mWeatherId = weather.basic.weatherId;
             showWeatherInfo(weather);
         }else {
-            String weatherId = getIntent().getStringExtra("weather_id");
+            //无缓存时去服务器查询天气信息
+            mWeatherId = getIntent().getStringExtra("weather_id");
             weatherLayout.setVisibility(View.INVISIBLE);
-            requestWeather(weatherId);
+            requestWeather(mWeatherId);
         }
+        swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                requestWeather(mWeatherId);
+            }
+        });
         String bingPic = preferences.getString("bing_pic", null);
         if (bingPic != null){
             Glide.with(this).load(bingPic).into(bingPicImg);
@@ -145,6 +156,7 @@ public class WeatherActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         Toast.makeText(WeatherActivity.this, "获取天气信息失败", Toast.LENGTH_SHORT).show();
+                        swipeRefresh.setRefreshing(false);
                     }
                 });
             }
@@ -164,6 +176,7 @@ public class WeatherActivity extends AppCompatActivity {
                         }else {
                             Toast.makeText(WeatherActivity.this, "获取天气信息失败", Toast.LENGTH_SHORT).show();
                         }
+                        swipeRefresh.setRefreshing(false);
                     }
                 });
             }
